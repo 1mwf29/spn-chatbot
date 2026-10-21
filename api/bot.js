@@ -1,8 +1,8 @@
 const TelegramBot = require('node-telegram-bot-api');
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN);
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 module.exports = async (req, res) => {
   try {
@@ -21,15 +21,17 @@ module.exports = async (req, res) => {
           return res.status(200).send('OK');
         }
 
-        const response = await ai.models.generateContent({
+        // Panggil Gemini 1.5 Flash
+        const model = genAI.getGenerativeModel({ 
           model: 'gemini-1.5-flash',
-          contents: userText,
-          config: {
-            systemInstruction: 'Kamu adalah tutor edukasi yang ramah, interaktif, dan komunikatif untuk siswa. Jawab dengan jelas, padat, dan gunakan bahasa yang mudah dipahami.'
-          }
+          systemInstruction: 'Kamu adalah tutor edukasi yang ramah, interaktif, dan komunikatif untuk siswa. Jawab dengan jelas, padat, dan gunakan bahasa yang mudah dipahami.'
         });
 
-        await bot.sendMessage(chatId, response.text);
+        const result = await model.generateContent(userText);
+        const response = await result.response;
+        const text = response.text();
+
+        await bot.sendMessage(chatId, text);
       }
     }
     res.status(200).send('OK');
